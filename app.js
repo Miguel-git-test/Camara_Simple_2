@@ -141,6 +141,19 @@ const applySportsSettings = async (track) => {
     }
 };
 
+const triggerDownload = (blob, filename) => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    // Don't revoke immediately for videos as it might be needed, 
+    // but for photos/blobs it's fine after a short delay.
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+};
+
 // --- UI Actions ---
 const takePhoto = async () => {
     if (!stream) return;
@@ -151,14 +164,44 @@ const takePhoto = async () => {
     const track = stream.getVideoTracks()[0];
     const settings = track.getSettings();
 
+    // Watermark Configuration
+    const watermarkHeight = 80;
+    const padding = 20;
+    const bgColor = "#FFFFFF";
+    const textColor = "#333333";
+
     canvas.width = settings.width;
-    canvas.height = settings.height;
+    canvas.height = settings.height + watermarkHeight;
     const ctx = canvas.getContext('2d');
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    // 1. Draw Camera Frame
+    ctx.drawImage(video, 0, 0, settings.width, settings.height);
+
+    // 2. Draw White Watermark Bar
+    ctx.fillStyle = bgColor;
+    ctx.fillRect(0, settings.height, canvas.width, watermarkHeight);
+
+    // 3. Draw Date & Time
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('es-ES', { 
+        day: '2-digit', month: '2-digit', year: 'numeric' 
+    });
+    const timeStr = now.toLocaleTimeString('es-ES', { 
+        hour: '2-digit', minute: '2-digit', second: '2-digit' 
+    });
+    const fullStr = `${dateStr}  |  ${timeStr} - SportCam Pro`;
+
+    ctx.fillStyle = textColor;
+    ctx.font = `bold ${Math.floor(watermarkHeight * 0.45)}px -apple-system, BlinkMacSystemFont, Segoe UI, Roboto`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(fullStr, canvas.width / 2, settings.height + (watermarkHeight / 2));
 
     canvas.toBlob(async (blob) => {
+        const filename = `SportCam_${now.getTime()}.jpg`;
         await saveToDB(blob, 'image');
         updateGalleryPreview();
+        triggerDownload(blob, filename); // AUTO-DOWNLOAD
     }, 'image/jpeg', 0.95);
 };
 
@@ -179,12 +222,18 @@ const startRecording = () => {
     };
 
     mediaRecorder.onstop = async () => {
+        const timestamp = Date.now();
         const blob = new Blob(recordedChunks, { type: options.mimeType });
+        const ext = options.mimeType.includes('mp4') ? 'mp4' : 'webm';
+        const filename = `SportCam_${timestamp}.${ext}`;
+        
         await saveToDB(blob, 'video');
         updateGalleryPreview();
         stopTimer();
         document.body.classList.remove('recording');
         overlay.classList.add('hidden');
+        
+        triggerDownload(blob, filename); // AUTO-DOWNLOAD
     };
 
     mediaRecorder.start();
