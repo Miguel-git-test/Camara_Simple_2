@@ -207,11 +207,16 @@ body.recording .video-btn .btn-inner {
 }
 
 .modal-header {
-    padding: 20px;
+    padding: 15px 20px;
     display: flex;
     justify-content: space-between;
     align-items: center;
     border-bottom: 1px solid #222;
+}
+
+.modal-header h2 {
+    font-size: 18px;
+    font-weight: 600;
 }
 
 .close-btn {
@@ -235,6 +240,7 @@ body.recording .video-btn .btn-inner {
     aspect-ratio: 1;
     position: relative;
     background: #111;
+    cursor: pointer;
 }
 
 .gallery-item img, .gallery-item video {
@@ -254,8 +260,71 @@ body.recording .video-btn .btn-inner {
     font-size: 10px;
 }
 
+/* Detail View */
+.detail-view {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: #000;
+    z-index: 105;
+    display: flex;
+    flex-direction: column;
+}
+
+.detail-content {
+    flex-grow: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #000;
+}
+
+.detail-content img, .detail-content video {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+
+.detail-footer {
+    height: 80px;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    padding-bottom: env(safe-area-inset-bottom, 20px);
+    background: rgba(18, 18, 18, 0.95);
+    backdrop-filter: blur(10px);
+}
+
+.detail-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    color: white;
+    padding: 12px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.detail-btn:active {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.detail-btn svg {
+    width: 24px;
+    height: 24px;
+}
+
+.delete-btn {
+    color: #ff3b30;
+}
+
 .empty-state {
-    padding: 50px;
+    padding: 100px 50px;
     text-align: center;
     color: #666;
 }

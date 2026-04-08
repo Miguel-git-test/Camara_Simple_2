@@ -1,12 +1,7 @@
-/**
- * SportCam Pro Logic
- */
-
 const video = document.getElementById('preview');
 const photoBtn = document.getElementById('photo-btn');
 const videoBtn = document.getElementById('video-btn');
 const galleryBtn = document.getElementById('gallery-btn');
-const nativeGalleryBtn = document.getElementById('native-gallery-btn');
 const closeGallery = document.getElementById('close-gallery');
 const galleryModal = document.getElementById('gallery-modal');
 const galleryGrid = document.getElementById('gallery-grid');
@@ -17,6 +12,14 @@ const overlay = document.getElementById('recording-overlay');
 const timerDisp = document.getElementById('recording-timer');
 const switchBtn = document.getElementById('switch-camera-btn');
 
+// Detail View Elements
+const itemDetail = document.getElementById('item-detail');
+const detailContent = document.querySelector('.detail-content');
+const closeDetail = document.getElementById('close-detail');
+const shareItemBtn = document.getElementById('share-item');
+const saveItemBtn = document.getElementById('save-item');
+const deleteItemBtn = document.getElementById('delete-item');
+
 let stream = null;
 let mediaRecorder = null;
 let recordedChunks = [];
@@ -24,6 +27,7 @@ let recordingStartTime = 0;
 let timerInterval = null;
 let currentFacingMode = 'environment';
 let db = null;
+let currentItem = null; // Currently viewed item in detail view
 
 // --- Database Setup (IndexedDB) ---
 const initDB = () => {
@@ -58,6 +62,16 @@ const saveToDB = async (blob, type) => {
     });
 };
 
+const deleteFromDB = async (id) => {
+    return new Promise((resolve, reject) => {
+        const transaction = db.transaction(['captures'], 'readwrite');
+        const store = transaction.objectStore('captures');
+        const request = store.delete(id);
+        request.onsuccess = () => resolve();
+        request.onerror = (e) => reject(e);
+    });
+};
+
 const getAllFromDB = async () => {
     return new Promise((resolve, reject) => {
         const transaction = db.transaction(['captures'], 'readonly');
@@ -74,13 +88,12 @@ const startCamera = async () => {
         stream.getTracks().forEach(track => track.stop());
     }
 
-    // Constraints optimized for sharp frames at 30fps
     const constraints = {
         video: {
             facingMode: currentFacingMode,
             width: { ideal: 3840 }, 
             height: { ideal: 2160 },
-            frameRate: { ideal: 30 } // User requested 30fps
+            frameRate: { ideal: 30 }
         },
         audio: true
     };
@@ -93,7 +106,6 @@ const startCamera = async () => {
         const settings = track.getSettings();
         console.log(`Resolution: ${settings.width}x${settings.height} @ ${settings.frameRate}fps`);
 
-        // Apply advanced Sports Settings (Fast Shutter)
         setTimeout(() => applySportsSettings(track), 1000);
     } catch (err) {
         console.error("Error accessing camera:", err);
@@ -103,41 +115,27 @@ const startCamera = async () => {
 
 const applySportsSettings = async (track) => {
     const capabilities = track.getCapabilities();
-    console.log("Capabilities:", capabilities);
-
     const constraints = {};
 
-    // 1. Exposure (Obturación)
     if (capabilities.exposureMode && capabilities.exposureMode.includes('manual')) {
         constraints.exposureMode = 'manual';
-        
-        // We want a very fast shutter. exposureTime is usually in micro-seconds or arbitrary values.
-        // We aim for something like 1/500s or faster.
         if (capabilities.exposureTime) {
             const minTime = capabilities.exposureTime.min;
             const maxTime = capabilities.exposureTime.max;
-            // Aim for the lower end of the spectrum for speed
             constraints.exposureTime = minTime + (maxTime - minTime) * 0.05; 
-            console.log("Setting manual exposure time:", constraints.exposureTime);
         }
-    } else {
-        console.warn("Manual exposure not supported on this device.");
     }
 
-    // 2. ISO/Gain (to compensate darkness if possible)
     if (capabilities.iso && capabilities.iso.min) {
-        // Boost ISO slightly to compensate for fast shutter
         constraints.iso = Math.min(capabilities.iso.max, capabilities.iso.min * 4);
     }
 
-    // 3. Focus (Sports should be infinity or continuous)
     if (capabilities.focusMode && capabilities.focusMode.includes('continuous')) {
         constraints.focusMode = 'continuous';
     }
 
     try {
         await track.applyConstraints({ advanced: [constraints] });
-        console.log("Applied sports constraints:", constraints);
     } catch (err) {
         console.error("Failed to apply sports constraints:", err);
     }
@@ -166,7 +164,7 @@ const takePhoto = async () => {
 
 const startRecording = () => {
     recordedChunks = [];
-    const options = { mimeType: 'video/webm;codecs=vp9,opus', videoBitsPerSecond: 12000000 }; // Increased bitrate for clarity
+    const options = { mimeType: 'video/webm;codecs=vp9,opus', videoBitsPerSecond: 12000000 };
     
     if (!MediaRecorder.isTypeSupported(options.mimeType)) {
         options.mimeType = 'video/webm;codecs=vp8,opus';
@@ -247,15 +245,76 @@ const updateGalleryPreview = async () => {
             div.appendChild(badge);
         }
         
-        div.onclick = () => {
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `SportCam_${item.timestamp}.${item.type === 'image' ? 'jpg' : 'webm'}`;
-            a.click();
-        };
-
+        div.onclick = () => openDetailView(item);
         galleryGrid.appendChild(div);
     });
+};
+
+const openDetailView = (item) => {
+    currentItem = item;
+    detailContent.innerHTML = '';
+    const url = URL.createObjectURL(item.blob);
+    
+    if (item.type === 'image') {
+        const img = document.createElement('img');
+        img.src = url;
+        detailContent.appendChild(img);
+    } else {
+        const vid = document.createElement('video');
+        vid.src = url;
+        vid.controls = true;
+        vid.autoplay = true;
+        detailContent.appendChild(vid);
+    }
+    
+    itemDetail.classList.remove('hidden');
+};
+
+const closeDetailView = () => {
+    itemDetail.classList.add('hidden');
+    detailContent.innerHTML = '';
+    currentItem = null;
+};
+
+const shareItem = async () => {
+    if (!currentItem) return;
+    
+    const fileExtension = currentItem.type === 'image' ? 'jpg' : 'webm';
+    const file = new File([currentItem.blob], `SportCam_${currentItem.timestamp}.${fileExtension}`, {
+        type: currentItem.blob.type
+    });
+
+    if (navigator.share && navigator.canShare({ files: [file] })) {
+        try {
+            await navigator.share({
+                files: [file],
+                title: 'SportCam Pro Capture',
+                text: 'Mira esta captura de mi SportCam!'
+            });
+        } catch (err) {
+            console.error('Error sharing:', err);
+        }
+    } else {
+        alert("Tu navegador no soporta la función de compartir archivos directamente.");
+    }
+};
+
+const saveItem = () => {
+    if (!currentItem) return;
+    const url = URL.createObjectURL(currentItem.blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `SportCam_${currentItem.timestamp}.${currentItem.type === 'image' ? 'jpg' : 'webm'}`;
+    a.click();
+};
+
+const deleteItem = async () => {
+    if (!currentItem) return;
+    if (confirm("¿Estás seguro de que quieres eliminar esta captura permanentemente?")) {
+        await deleteFromDB(currentItem.id);
+        closeDetailView();
+        await updateGalleryPreview();
+    }
 };
 
 // --- Events ---
@@ -274,20 +333,14 @@ galleryBtn.addEventListener('click', async () => {
     galleryModal.classList.remove('hidden');
 });
 
-nativeGalleryBtn.addEventListener('click', () => {
-    // Attempt to open the phone's gallery
-    // This is primarily for Android. On iOS it won't do much but we try.
-    window.location.href = "intent:#Intent;action=android.intent.action.VIEW;type=image/*;end";
-    
-    // Fallback for non-android
-    setTimeout(() => {
-        alert("Si no se abrió la galería, es porque tu sistema (posiblemente iOS) bloquea el acceso directo desde el navegador.");
-    }, 2000);
-});
-
 closeGallery.addEventListener('click', () => {
     galleryModal.classList.add('hidden');
 });
+
+closeDetail.addEventListener('click', closeDetailView);
+shareItemBtn.addEventListener('click', shareItem);
+saveItemBtn.addEventListener('click', saveItem);
+deleteItemBtn.addEventListener('click', deleteItem);
 
 switchBtn.addEventListener('click', () => {
     currentFacingMode = currentFacingMode === 'environment' ? 'user' : 'environment';
