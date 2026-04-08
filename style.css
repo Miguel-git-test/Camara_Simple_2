@@ -1,0 +1,265 @@
+:root {
+    --bg-color: #000000;
+    --accent-color: #ff3b30; /* Action Red */
+    --photo-color: #ffffff;
+    --video-color: #ff3b30;
+    --text-color: #ffffff;
+    --control-bg: rgba(255, 255, 255, 0.1);
+    --glass-blur: blur(15px);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+}
+
+body {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+}
+
+#app {
+    position: relative;
+    height: 100%;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Viewport */
+.viewport {
+    position: relative;
+    flex-grow: 1;
+    overflow: hidden;
+    background: #111;
+}
+
+#preview {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* Flash Effect */
+#snap-flash {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: white;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.1s ease-out;
+    z-index: 10;
+}
+
+#snap-flash.active {
+    opacity: 1;
+}
+
+/* Recording Overlay */
+#recording-overlay {
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: var(--glass-blur);
+    padding: 8px 16px;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    z-index: 5;
+    border: 1px solid rgba(255,0,0,0.3);
+}
+
+.dot {
+    width: 10px;
+    height: 10px;
+    background: var(--accent-color);
+    border-radius: 50%;
+    animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.3); opacity: 0.5; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+/* Controls */
+.controls {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 180px;
+    background: linear-gradient(transparent, rgba(0,0,0,0.8));
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    padding: 20px 0;
+    padding-bottom: env(safe-area-inset-bottom, 20px);
+}
+
+.main-buttons {
+    display: flex;
+    gap: 30px;
+    align-items: center;
+}
+
+.action-btn {
+    background: none;
+    border: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+}
+
+.btn-outer {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    border: 4px solid white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: transform 0.1s ease;
+}
+
+.action-btn:active .btn-outer {
+    transform: scale(0.9);
+}
+
+.btn-inner {
+    width: 58px;
+    height: 58px;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+}
+
+.photo-btn .btn-inner {
+    background: white;
+}
+
+.video-btn .btn-inner {
+    background: var(--accent-color);
+}
+
+/* Recording State UI */
+body.recording .video-btn .btn-inner {
+    width: 30px;
+    height: 30px;
+    border-radius: 4px;
+}
+
+.btn-label {
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 2px;
+    color: white;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+}
+
+.secondary-btn {
+    background: var(--control-bg);
+    backdrop-filter: var(--glass-blur);
+    border: none;
+    color: white;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+}
+
+.secondary-btn svg {
+    width: 24px;
+    height: 24px;
+}
+
+/* Modal Gallery */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--bg-color);
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    padding-top: env(safe-area-inset-top, 0px);
+}
+
+.modal-header {
+    padding: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #222;
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 32px;
+    cursor: pointer;
+}
+
+.gallery-grid {
+    flex-grow: 1;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2px;
+    overflow-y: auto;
+    padding: 2px;
+}
+
+.gallery-item {
+    aspect-ratio: 1;
+    position: relative;
+    background: #111;
+}
+
+.gallery-item img, .gallery-item video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.video-badge {
+    position: absolute;
+    bottom: 5px;
+    right: 5px;
+    background: rgba(0,0,0,0.6);
+    color: white;
+    padding: 2px 4px;
+    border-radius: 3px;
+    font-size: 10px;
+}
+
+.empty-state {
+    padding: 50px;
+    text-align: center;
+    color: #666;
+}
+
+.hidden {
+    display: none !important;
+}

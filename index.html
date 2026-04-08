@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>SportCam Pro</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#000000">
+    <link rel="icon" href="https://fonts.gstatic.com/s/i/materialiconsoutlined/camera/v10/24px.svg">
+</head>
+<body>
+    <div id="app">
+        <!-- Main Camera Viewport -->
+        <div class="viewport">
+            <video id="preview" autoplay playsinline muted></video>
+            <div id="recording-overlay" class="hidden">
+                <span class="dot"></span>
+                <span id="recording-timer">00:00</span>
+            </div>
+            <div id="snap-flash"></div>
+        </div>
+
+        <!-- Camera Controls -->
+        <div class="controls">
+            <button id="gallery-btn" class="secondary-btn" title="Abrir Galería">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            </button>
+            
+            <div class="main-buttons">
+                <button id="video-btn" class="action-btn video-btn" title="Grabar Vídeo">
+                    <div class="btn-outer">
+                        <div class="btn-inner"></div>
+                    </div>
+                    <span class="btn-label">VÍDEO</span>
+                </button>
+                
+                <button id="photo-btn" class="action-btn photo-btn" title="Tomar Foto">
+                    <div class="btn-outer">
+                        <div class="btn-inner"></div>
+                    </div>
+                    <span class="btn-label">FOTO</span>
+                </button>
+            </div>
+
+            <button id="switch-camera-btn" class="secondary-btn" title="Cambiar Cámara">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+            </button>
+        </div>
+
+        <!-- Internal Gallery Modal -->
+        <div id="gallery-modal" class="modal hidden">
+            <div class="modal-header">
+                <h2>Galería SportCam</h2>
+                <button id="close-gallery" class="close-btn">&times;</button>
+            </div>
+            <div id="gallery-grid" class="gallery-grid">
+                <!-- Items will be injected here -->
+            </div>
+            <div id="empty-gallery" class="empty-state">
+                <p>No hay fotos ni vídeos todavía.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden canvas for image capture -->
+    <canvas id="capture-canvas" style="display: none;"></canvas>
+
+    <script src="app.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js');
+        }
+    </script>
+</body>
+</html>
